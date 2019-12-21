@@ -12,6 +12,33 @@
 #include "arm_neon.h"
 void gemm4x4_vec(float *a, int sa, float *b, int sb, float *c, int sc)
 {
+    float32x4_t vb[4];
+    for( int i = 0; i < 4; ++i ){
+        vb[i] = vld1q_f32( b + sb*i );
+    }
+
+    for( int y = 0; y < 4; ++y ){
+        float32x4_t va = vld1q_f32( a + y*sa );
+        float32x4_t vc = vld1q_f32( c + y*sc );
+
+        // float32x4_t vmlaq_laneq_f32 = ( float32x4_t A, float32x4_t B, float32x4_t C, const int lane )
+        // take "lane" th item from C as scaler, multply scaler to vector B, then accumulate result with A, returns float32x4_t
+        vc = vmlaq_laneq_f32(vc, vb[0], va, 0);
+        vc = vmlaq_laneq_f32(vc, vb[1], va, 1);
+        vc = vmlaq_laneq_f32(vc, vb[2], va, 2);
+        vc = vmlaq_laneq_f32(vc, vb[3], va, 3);
+        vst1q_f32( c + y*sc, vc );
+    }
+
+    //for( int y = 0; y < 4; ++y ){
+    //    for( int x = 0; x < 4; ++x ){
+    //        float temp = *( c + y*sc + x );
+    //        for( int k = 0; k < 4; ++k ){
+    //            temp += *( a + sa*y + k ) * *( b + sb*k + x );
+    //        }
+    //        *( c + y*sc + x ) = temp;
+    //    }
+    //}
 }
 
 int main(void)
@@ -46,10 +73,10 @@ int main(void)
 		for(int n = 0; n < TEST_N; n+=4){
 			for(int k = 0; k < TEST_K; k+=4){
 				gemm4x4_vec(
-							ma + m*TEST_K + k, TEST_K,
-							mb + k*TEST_N + n, TEST_N,
-							mc + m*TEST_N + n, TEST_N
-						);
+					ma + m*TEST_K + k, TEST_K,
+					mb + k*TEST_N + n, TEST_N,
+					mc + m*TEST_N + n, TEST_N
+				);
 			}
 		}
 	}

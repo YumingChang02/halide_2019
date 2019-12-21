@@ -11,6 +11,27 @@
 #include "arm_neon.h"
 void gemm8x8_vec(uint8_t *a, int32_t sa, uint8_t *b, int32_t sb, uint32_t *c, int32_t sc)
 {
+    uint8x8_t vb[8];
+    for( int i = 0; i < 8; ++i ){
+        vb[i] = vld1_u8( b + sb * i );
+    }
+
+    for( int j = 0; j < 8; ++j ){
+        // init vector c
+        uint32x4_t vc[2];
+        vc[0] = vld1q_u32( c + sc * j );
+        vc[1] = vld1q_u32( c + sc * j + 4 );
+
+        uint8x8_t va = vld1_u8( a + sa * j );
+        for( int i = 0; i < 8; ++i ){
+            uint8x8_t temp_a = vdup_n_u8( va[i] );
+            uint16x8_t temp = vmull_u8( temp_a, vb[i] );
+            vc[1] = vaddw_high_u16( vc[1], temp );
+            vc[0] = vaddw_u16( vc[0], vget_low_u16( temp ) );
+        }
+        vst1q_u32( c + sc * j, vc[0] );
+        vst1q_u32( c + sc * j + 4, vc[1] );
+    }
 }
 
 int main(void)
@@ -45,10 +66,10 @@ int main(void)
 		for(int n = 0; n < TEST_N; n+=8){
 			for(int k = 0; k < TEST_K; k+=8){
 				gemm8x8_vec(
-							ma + m*TEST_K + k, TEST_K,
-							mb + k*TEST_N + n, TEST_N,
-							mc + m*TEST_N + n, TEST_N
-						);
+					ma + m*TEST_K + k, TEST_K,
+					mb + k*TEST_N + n, TEST_N,
+					mc + m*TEST_N + n, TEST_N
+				);
 			}
 		}
 	}
