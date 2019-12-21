@@ -17,8 +17,9 @@ int main(int argc, char **argv) {
     input(x, y, c) = cast<uint16_t>(BoundaryConditions::repeat_edge(image)(x, y, c));
 
     // DO 3x3 blur HERE, currenly just bypass the image to output
-    RDom r2D( -1, 3, -1, 3 );
-    blur(x, y, c) = u8( sum( input( x + r2D.x, y + r2D.y, c ) ) / 9 );
+    RDom r2D(-1, 3);
+    middle( x, y, c ) = sum( input( x + r2D, y, c ) );
+    blur(x, y, c) = u8( sum( middle( x, y + r2D, c ) ) / 9 );
 
 
     Halide::Buffer<uint8_t> output = blur.realize(image.width(), image.height(), image.channels());
